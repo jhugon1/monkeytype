@@ -34,6 +34,7 @@ export const PersonalBestsSchema = z.object({
   quote: z.record(StringNumberSchema, z.array(PersonalBestSchema)),
   custom: z.record(z.literal("custom"), z.array(PersonalBestSchema)),
   zen: z.record(z.literal("zen"), z.array(PersonalBestSchema)),
+  dictionary: z.record(z.literal("dictionary"), z.array(PersonalBestSchema)),
 });
 export type PersonalBests = z.infer<typeof PersonalBestsSchema>;
 

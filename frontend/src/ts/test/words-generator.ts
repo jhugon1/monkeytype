@@ -313,6 +313,14 @@ async function applyEnglishPunctuationToWord(word: string): Promise<string> {
   return EnglishPunctuation.replace(word);
 }
 
+async function getDictionaryWordList(): Promise<string[]> {
+  const response = await fetch("/dictionary.json");
+  const entries = (await response.json()) as DictionaryEntry[];
+
+  const shuffled = [...entries].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 20).map((e) => `${e.word} - ${e.definition}`);
+}
+
 function getFunboxWordsFrequency(): FunboxWordsFrequency | undefined {
   const funbox = findSingleActiveFunboxWithFunction("getWordsFrequencyMode");
   if (funbox) {
@@ -493,6 +501,11 @@ export function getLimit(): number {
   return limit;
 }
 
+type DictionaryEntry = {
+  word: string;
+  definition: string;
+};
+
 async function getQuoteWordList(
   language: LanguageObject,
   wordOrder?: FunboxWordOrder,
@@ -639,6 +652,8 @@ export async function generateWords(
     wordList = await getQuoteWordList(language, wordOrder);
   } else if (Config.mode === "zen") {
     wordList = [];
+  } else if (Config.mode === "dictionary") {
+    wordList = await getDictionaryWordList();
   }
 
   const customAndUsingPipeDelimiter =

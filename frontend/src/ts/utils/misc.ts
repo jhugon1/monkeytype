@@ -261,6 +261,8 @@ export function getMode2<M extends keyof PersonalBests>(
     retVal = "zen";
   } else if (mode === "quote") {
     retVal = `${randomQuote?.id ?? -1}`;
+  } else if (mode === "dictionary") {
+    retVal = "dictionary";
   } else {
     throw new Error("Invalid mode");
   }
