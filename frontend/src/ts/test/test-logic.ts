@@ -629,7 +629,10 @@ export async function addWord(): Promise<void> {
       let wordCount = 0;
       for (let i = 0; i < section.words.length; i++) {
         const word = section.words[i] as string;
-        if (wordCount >= Config.words && Config.mode === "words") {
+        if (
+          wordCount >= Config.words &&
+          (Config.mode === "words" || Config.mode === "dictionary")
+        ) {
           break;
         }
         wordCount++;
@@ -1411,10 +1414,12 @@ qs(".pageTest")?.onChild("click", "#restartTestButtonWithSameWordset", () => {
 qs(".pageTest")?.onChild("click", "#testConfig .mode .textButton", (e) => {
   if (TestState.testRestarting) return;
   if ((e.childTarget as HTMLElement).classList.contains("active")) return;
-  const mode = ((e.childTarget as HTMLElement)?.getAttribute("mode") ??
-    "time") as Mode;
+  const mode = (e.childTarget as HTMLElement)?.getAttribute("mode") as Mode;
   if (mode === undefined) return;
   if (setConfig("mode", mode)) {
+    if (mode === "dictionary" && ![20, 40, 60, 100].includes(Config.words)) {
+      setConfig("words", 20);
+    }
     ManualRestart.set();
     restart();
   }
@@ -1470,6 +1475,22 @@ qs(".pageTest")?.onChild(
           ManualRestart.set();
           restart();
         }
+      }
+    }
+  },
+);
+
+qs(".pageTest")?.onChild(
+  "click",
+  "#testConfig .dictionaryWordCount .textButton",
+  (e) => {
+    if (TestState.testRestarting) return;
+    const wrd =
+      (e.childTarget as HTMLElement)?.getAttribute("wordCount") ?? "20";
+    if (wrd !== "custom") {
+      if (setConfig("words", parseInt(wrd))) {
+        ManualRestart.set();
+        restart();
       }
     }
   },

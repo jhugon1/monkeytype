@@ -55,6 +55,7 @@ const actionModals: Record<Action, SimpleModal> = {
           quote: {},
           zen: {},
           custom: {},
+          dictionary: {},
         },
       });
       void Settings.update();
@@ -97,6 +98,14 @@ const actionModals: Record<Action, SimpleModal> = {
       if (matchingTag !== undefined) {
         matchingTag.name = tagName;
         matchingTag.display = propTagName;
+        matchingTag.personalBests = {
+          time: {},
+          words: {},
+          quote: {},
+          zen: {},
+          custom: {},
+          dictionary: {},
+        };
       }
 
       void Settings.update();
@@ -165,6 +174,7 @@ const actionModals: Record<Action, SimpleModal> = {
           quote: {},
           zen: {},
           custom: {},
+          dictionary: {},
         };
       }
 

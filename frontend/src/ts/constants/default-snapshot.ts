@@ -99,6 +99,7 @@ const defaultSnap = {
     quote: {},
     zen: {},
     custom: {},
+    dictionary: {},
   },
   name: "",
   email: "",

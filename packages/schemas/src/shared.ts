@@ -65,15 +65,20 @@ export const QuoteLengthSchema = z.union([
 // // Step 2: Use this schema as the key schema for another object
 // export const ExampleSchema = z.record(SpecificKeySchema, z.string());
 
-// //used by user, config, public
+//used by user, config, public
 export const ModeSchema = PersonalBestsSchema.keyof();
 export type Mode = z.infer<typeof ModeSchema>;
 
 export const Mode2Schema = z.union(
-  [StringNumberSchema, literal("zen"), literal("custom")],
+  [
+    StringNumberSchema,
+    literal("zen"),
+    literal("custom"),
+    literal("dictionary"),
+  ],
   {
     errorMap: () => ({
-      message: 'Needs to be either a number, "zen" or "custom".',
+      message: 'Needs to be either a number, "zen", "custom" or "dictionary".',
     }),
   },
 );

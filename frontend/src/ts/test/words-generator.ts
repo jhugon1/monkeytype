@@ -318,7 +318,9 @@ async function getDictionaryWordList(): Promise<string[]> {
   const entries = (await response.json()) as DictionaryEntry[];
 
   const shuffled = [...entries].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 20).map((e) => `${e.word} - ${e.definition}`);
+  return shuffled
+    .slice(0, Config.words)
+    .map((e) => `${e.word}, ${e.definition}.`);
 }
 
 function getFunboxWordsFrequency(): FunboxWordsFrequency | undefined {

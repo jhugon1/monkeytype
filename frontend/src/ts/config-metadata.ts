@@ -123,10 +123,12 @@ export const configMetadata: ConfigMetadataObject = {
     changeRequiresRestart: true,
     group: "test",
     overrideConfig: ({ currentConfig }) => {
-      if (currentConfig.mode !== "words") {
-        return {
-          mode: "words",
-        };
+      // keep dictionary mode when changing count there
+      if (
+        currentConfig.mode !== "words" &&
+        currentConfig.mode !== "dictionary"
+      ) {
+        return { mode: "words" };
       }
       return {};
     },

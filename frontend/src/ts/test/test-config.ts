@@ -43,15 +43,11 @@ export async function instantUpdate(): Promise<void> {
 
     updateActiveExtraButtons("time", Config.time);
   } else if (Config.mode === "words") {
-    qs("#testConfig .puncAndNum")?.show()?.setStyle({
-      width: "",
-      opacity: "",
-    });
-    qs("#testConfig .leftSpacer")?.show();
-    qs("#testConfig .rightSpacer")?.show();
     qs("#testConfig .wordCount")?.show();
-
     updateActiveExtraButtons("words", Config.words);
+  } else if (Config.mode === "dictionary") {
+    qs("#testConfig .dictionaryWordCount")?.show();
+    updateActiveExtraButtons("dictionaryWords", Config.words);
   } else if (Config.mode === "quote") {
     qs("#testConfig .rightSpacer")?.show();
     qs("#testConfig .quoteLength")?.show();
@@ -79,6 +75,8 @@ async function update(previous: Mode, current: Mode): Promise<void> {
     updateActiveExtraButtons("time", Config.time);
   } else if (current === "words") {
     updateActiveExtraButtons("words", Config.words);
+  } else if (current === "dictionary") {
+    updateActiveExtraButtons("dictionaryWords", Config.words);
   } else if (current === "quote") {
     updateActiveExtraButtons("quoteLength", Config.quoteLength);
   }
@@ -86,6 +84,7 @@ async function update(previous: Mode, current: Mode): Promise<void> {
   const submenu = {
     time: "time",
     words: "wordCount",
+    dictionary: "dictionaryWordCount",
     custom: "customText",
     quote: "quoteLength",
     zen: "zen",
@@ -100,9 +99,10 @@ async function update(previous: Mode, current: Mode): Promise<void> {
     out: `out(${scale})`,
   };
 
-  const puncAndNumVisible = {
+  const puncAndNumVisible: Record<Mode, boolean> = {
     time: true,
     words: true,
+    dictionary: true,
     custom: true,
     quote: false,
     zen: false,
@@ -266,13 +266,19 @@ function updateActiveExtraButtons(key: string, value: ConfigValue): void {
     )?.addClass("active");
   } else if (key === "words") {
     qsa("#testConfig .wordCount .textButton")?.removeClass("active");
-
     const wordCustom = ![10, 25, 50, 100, 200].includes(value as number)
       ? "custom"
       : (value as number);
-
     qs(
-      "#testConfig .wordCount .textButton[wordCount='" + wordCustom + "']",
+      `#testConfig .wordCount .textButton[wordCount='${wordCustom}']`,
+    )?.addClass("active");
+  } else if (key === "dictionaryWords") {
+    qsa("#testConfig .dictionaryWordCount .textButton")?.removeClass("active");
+    const dictionaryCustom = ![20, 40, 60, 100].includes(value as number)
+      ? "custom"
+      : (value as number);
+    qs(
+      `#testConfig .dictionaryWordCount .textButton[wordCount='${dictionaryCustom}']`,
     )?.addClass("active");
   } else if (key === "quoteLength") {
     qsa("#testConfig .quoteLength .textButton")?.removeClass("active");

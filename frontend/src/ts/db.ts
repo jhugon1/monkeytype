@@ -147,6 +147,7 @@ export async function initSnapshot(): Promise<Snapshot | false> {
       quote: {},
       zen: {},
       custom: {},
+      dictionary: {},
     };
 
     for (const mode of ["time", "words", "quote", "zen", "custom"]) {
@@ -647,6 +648,7 @@ function saveLocalPB<M extends Mode>(
       quote: {},
       zen: {},
       custom: {},
+      dictionary: {},
     };
 
     dbSnapshot.personalBests[mode] ??= {
@@ -664,7 +666,7 @@ function saveLocalPB<M extends Mode>(
         (pb.numbers ?? false) === numbers &&
         pb.difficulty === difficulty &&
         pb.language === language &&
-        (pb.lazyMode ?? false) === lazyMode
+        (pb.lazyMode === lazyMode || (pb.lazyMode === undefined && !lazyMode))
       ) {
         found = true;
         pb.wpm = wpm;
@@ -723,6 +725,7 @@ export async function getLocalTagPB<M extends Mode>(
     quote: {},
     zen: {},
     custom: {},
+    dictionary: {},
   };
 
   filteredtag.personalBests[mode] ??= {
@@ -775,6 +778,7 @@ export async function saveLocalTagPB<M extends Mode>(
       quote: {},
       zen: {},
       custom: {},
+      dictionary: {},
     };
 
     filteredtag.personalBests[mode] ??= {
@@ -831,6 +835,7 @@ export async function saveLocalTagPB<M extends Mode>(
         quote: {},
         zen: {},
         custom: {},
+        dictionary: {},
       };
       filteredtag.personalBests[mode][mode2] = [
         {

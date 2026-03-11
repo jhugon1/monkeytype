@@ -1,0 +1,206 @@
+=== event-handlers/test.ts 35-60 ===
+35:   const target = event.childTarget as HTMLElement;
+36:   const attr = target?.getAttribute("commandId");
+37:   if (attr === null) return;
+38:   Commandline.show({ commandOverride: attr });
+39: });
+40: 
+41: testPage?.onChild("click", "#testConfig .wordCount .textButton", (event) => {
+42:   const target = event.childTarget as HTMLElement;
+43:   const wrd = target?.getAttribute("wordCount");
+44:   if (wrd === "custom") {
+45:     CustomWordAmount.show();
+46:   }
+47: });
+48: 
+49: testPage?.onChild("click", "#testConfig .time .textButton", (event) => {
+50:   const target = event.childTarget as HTMLElement;
+51:   const time = target?.getAttribute("timeconfig");
+52:   if (time === "custom") {
+53:     CustomTestDurationModal.show();
+54:   }
+55: });
+56: 
+57: testPage?.onChild("click", "#testConfig .shareButton", () => {
+58:   ShareTestSettingsPopup.show();
+59: });
+60: 
+
+=== test-logic.ts 1418-1440 ===
+1418:     ManualRestart.set();
+1419:     restart();
+1420:   }
+1421: });
+1422: 
+1423: qs(".pageTest")?.onChild("click", "#testConfig .wordCount .textButton", (e) => {
+1424:   if (TestState.testRestarting) return;
+1425:   const wrd = (e.childTarget as HTMLElement)?.getAttribute("wordCount") ?? "15";
+1426:   if (wrd !== "custom") {
+1427:     if (setConfig("words", parseInt(wrd))) {
+1428:       ManualRestart.set();
+1429:       restart();
+1430:     }
+1431:   }
+1432: });
+1433: 
+1434: qs(".pageTest")?.onChild("click", "#testConfig .time .textButton", (e) => {
+1435:   if (TestState.testRestarting) return;
+1436:   const mode =
+1437:     (e.childTarget as HTMLElement)?.getAttribute("timeConfig") ?? "10";
+1438:   if (mode !== "custom") {
+1439:     if (setConfig("time", parseInt(mode))) {
+1440:       ManualRestart.set();
+
+=== config-metadata.ts 115-145 ===
+115:         return false;
+116:       }
+117:       return value;
+118:     },
+119:   },
+120:   words: {
+121:     icon: "fa-font",
+122:     displayString: "word count",
+123:     changeRequiresRestart: true,
+124:     group: "test",
+125:     overrideConfig: ({ currentConfig }) => {
+126:       if (currentConfig.mode !== "words") {
+127:         return {
+128:           mode: "words",
+129:         };
+130:       }
+131:       return {};
+132:     },
+133:   },
+134:   time: {
+135:     icon: "fa-clock",
+136:     changeRequiresRestart: true,
+137:     displayString: "time",
+138:     group: "test",
+139:     overrideConfig: ({ currentConfig }) => {
+140:       if (currentConfig.mode !== "time") {
+141:         return {
+142:           mode: "time",
+143:         };
+144:       }
+145:       return {};
+
+=== ModeSchema - find dictionary mode ===
+14:   lazyMode: z.boolean().optional(),
+37:   dictionary: z.record(z.literal("dictionary"), z.array(PersonalBestSchema)),
+41: export const DefaultWordsModeSchema = z.union([
+48: export const DefaultTimeModeSchema = z.union([
+69: export const ModeSchema = PersonalBestsSchema.keyof();
+70: export type Mode = z.infer<typeof ModeSchema>;
+72: export const Mode2Schema = z.union(
+81: export type Mode2<M extends Mode> = M extends M
+84: export type Mode2Custom<M extends Mode> = Mode2<M> | "custom";
+
+=== words-generator.ts getDictionaryWordList 315-325 ===
+315: 
+316: async function getDictionaryWordList(): Promise<string[]> {
+317:   const response = await fetch("/dictionary.json");
+318:   const entries = (await response.json()) as DictionaryEntry[];
+319: 
+320:   const shuffled = [...entries].sort(() => Math.random() - 0.5);
+321:   return shuffled.slice(0, 20).map((e) => `${e.word}, ${e.definition}.`);
+322: }
+323: 
+324: function getFunboxWordsFrequency(): FunboxWordsFrequency | undefined {
+325:   const funbox = findSingleActiveFunboxWithFunction("getWordsFrequencyMode");
+
+=== test-config.ts 260-285 ===
+260:     qsa("#testConfig .time .textButton")?.removeClass("active");
+261:     const timeCustom = ![15, 30, 60, 120].includes(value as number)
+262:       ? "custom"
+263:       : (value as number);
+264:     qs(
+265:       "#testConfig .time .textButton[timeConfig='" + timeCustom + "']",
+266:     )?.addClass("active");
+267:   } else if (key === "words") {
+268:     qsa("#testConfig .wordCount .textButton")?.removeClass("active");
+269: 
+270:     const wordCustom = ![10, 25, 50, 100, 200].includes(value as number)
+271:       ? "custom"
+272:       : (value as number);
+273: 
+274:     qs(
+275:       "#testConfig .wordCount .textButton[wordCount='" + wordCustom + "']",
+276:     )?.addClass("active");
+277:   } else if (key === "quoteLength") {
+278:     qsa("#testConfig .quoteLength .textButton")?.removeClass("active");
+279: 
+280:     if (areUnsortedArraysEqual(value as QuoteLength[], [0, 1, 2, 3])) {
+281:       qs("#testConfig .quoteLength .textButton[quotelength='all']")?.addClass(
+282:         "active",
+283:       );
+284:     } else {
+285:       (value as QuoteLength[]).forEach((ql) => {
+
+=== test-config.ts 1-20 (imports) ===
+1: import { ConfigValue, QuoteLength } from "@monkeytype/schemas/configs";
+2: import { Mode } from "@monkeytype/schemas/shared";
+3: import Config from "../config";
+4: import * as ConfigEvent from "../observables/config-event";
+5: import { getActivePage } from "../signals/core";
+6: import { applyReducedMotion } from "../utils/misc";
+7: import { areUnsortedArraysEqual } from "../utils/arrays";
+8: import * as AuthEvent from "../observables/auth-event";
+9: import { qs, qsa } from "../utils/dom";
+10: 
+11: export function show(): void {
+12:   qs("#testConfig")?.removeClass("invisible");
+13:   qs("#mobileTestConfigButton")?.removeClass("invisible");
+14: }
+15: 
+16: export function hide(): void {
+17:   qs("#testConfig")?.addClass("invisible");
+18:   qs("#mobileTestConfigButton")?.addClass("invisible");
+19: }
+20: 
+
+=== event-handlers/test.ts 1-45 ===
+1: import * as Commandline from "../commandline/commandline";
+2: import * as CustomWordAmount from "../modals/custom-word-amount";
+3: import Config from "../config";
+4: import * as DB from "../db";
+5: import * as EditResultTagsModal from "../modals/edit-result-tags";
+6: import * as MobileTestConfigModal from "../modals/mobile-test-config";
+7: import * as CustomTestDurationModal from "../modals/custom-test-duration";
+8: import * as TestWords from "../test/test-words";
+9: import {
+10:   showNoticeNotification,
+11:   showErrorNotification,
+12: } from "../stores/notifications";
+13: import * as QuoteRateModal from "../modals/quote-rate";
+14: import * as QuoteReportModal from "../modals/quote-report";
+15: import * as QuoteSearchModal from "../modals/quote-search";
+16: import * as CustomTextModal from "../modals/custom-text";
+17: import * as PractiseWordsModal from "../modals/practise-words";
+18: import { navigate } from "../controllers/route-controller";
+19: import { getMode2 } from "../utils/misc";
+20: import * as ShareTestSettingsPopup from "../modals/share-test-settings";
+21: import { ConfigKey } from "@monkeytype/schemas/configs";
+22: import { ListsObjectKeys } from "../commandline/lists";
+23: import { qs } from "../utils/dom";
+24: 
+25: const testPage = qs(".pageTest");
+26: 
+27: testPage?.onChild("click", "#testModesNotice .textButton", async (event) => {
+28:   const target = event.childTarget as HTMLElement;
+29:   const attr = target?.getAttribute("commands");
+30:   if (attr === null) return;
+31:   Commandline.show({ subgroupOverride: attr as ConfigKey | ListsObjectKeys });
+32: });
+33: 
+34: testPage?.onChild("click", "#testModesNotice .textButton", async (event) => {
+35:   const target = event.childTarget as HTMLElement;
+36:   const attr = target?.getAttribute("commandId");
+37:   if (attr === null) return;
+38:   Commandline.show({ commandOverride: attr });
+39: });
+40: 
+41: testPage?.onChild("click", "#testConfig .wordCount .textButton", (event) => {
+42:   const target = event.childTarget as HTMLElement;
+43:   const wrd = target?.getAttribute("wordCount");
+44:   if (wrd === "custom") {
+45:     CustomWordAmount.show();

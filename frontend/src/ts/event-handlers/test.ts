@@ -112,6 +112,18 @@ testPage?.onChild("click", "#practiseWordsButton", () => {
   PractiseWordsModal.show();
 });
 
+testPage?.onChild(
+  "click",
+  "#testConfig .dictionaryWordCount .textButton",
+  (event) => {
+    const target = event.childTarget as HTMLElement;
+    const wrd = target?.getAttribute("wordCount");
+    if (wrd === "custom") {
+      CustomWordAmount.show();
+    }
+  },
+);
+
 qs(".pageTest #dailyLeaderboardRank")?.on("click", async () => {
   void navigate(
     `/leaderboards?type=daily&language=${Config.language}&mode2=${getMode2(
