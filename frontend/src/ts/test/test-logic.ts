@@ -74,6 +74,36 @@ import { qs } from "../utils/dom";
 import { setAccountButtonSpinner } from "../signals/header";
 
 let failReason = "";
+let dictionarySectionsGenerated = 0;
+
+function capBySectionCount(
+  words: string[],
+  sectionIndexes: number[],
+  maxSections: number,
+): { words: string[]; sectionIndexes: number[]; sectionCount: number } {
+  if (maxSections <= 0) {
+    return { words: [], sectionIndexes: [], sectionCount: 0 };
+  }
+  const allowed = new Set<number>();
+  const outWords: string[] = [];
+  const outSectionIndexes: number[] = [];
+
+  for (let i = 0; i < words.length; i++) {
+    const section = sectionIndexes[i] ?? 0;
+
+    if (!allowed.has(section) && allowed.size >= maxSections) break;
+    allowed.add(section);
+
+    outWords.push(words[i] as string);
+    outSectionIndexes.push(section);
+  }
+
+  return {
+    words: outWords,
+    sectionIndexes: outSectionIndexes,
+    sectionCount: allowed.size,
+  };
+}
 
 export let notSignedInLastResult: CompletedEvent | null = null;
 
@@ -484,6 +514,18 @@ async function init(): Promise<boolean> {
     wordsHaveTab = gen.hasTab;
     wordsHaveNewline = gen.hasNewline;
     ({ allRightToLeft, allLigatures } = gen);
+
+    // hard cap initial preload for dictionary mode
+    if (Config.mode === "dictionary" && Config.words > 0) {
+      const capped = capBySectionCount(
+        generatedWords,
+        generatedSectionIndexes,
+        Config.words,
+      );
+      generatedWords = capped.words;
+      generatedSectionIndexes = capped.sectionIndexes;
+      dictionarySectionsGenerated = capped.sectionCount;
+    }
   } catch (e) {
     hideLoaderBar();
     if (e instanceof WordGenError || e instanceof Error) {
@@ -568,6 +610,9 @@ export function areAllTestWordsGenerated(): boolean {
     (Config.mode === "words" &&
       TestWords.words.length >= Config.words &&
       Config.words > 0) ||
+    (Config.mode === "dictionary" &&
+      Config.words > 0 &&
+      dictionarySectionsGenerated >= Config.words) ||
     (Config.mode === "custom" &&
       CustomText.getLimitMode() === "word" &&
       TestWords.words.length >= CustomText.getLimitValue() &&
@@ -610,6 +655,14 @@ export async function addWord(): Promise<void> {
   }
   const sectionFunbox = findSingleActiveFunboxWithFunction("pullSection");
   if (sectionFunbox) {
+    if (
+      Config.mode === "dictionary" &&
+      Config.words > 0 &&
+      dictionarySectionsGenerated >= Config.words
+    ) {
+      return;
+    }
+
     if (TestWords.words.length - TestState.activeWordIndex < 20) {
       const section = await sectionFunbox.functions.pullSection(
         Config.language,
@@ -626,21 +679,27 @@ export async function addWord(): Promise<void> {
 
       if (section === undefined) return;
 
-      let wordCount = 0;
+      const isWordLimitedMode =
+        Config.mode === "words" || Config.mode === "dictionary";
+
       for (let i = 0; i < section.words.length; i++) {
+        if (isWordLimitedMode && TestWords.words.length >= Config.words) break;
+
         const word = section.words[i] as string;
-        if (
-          wordCount >= Config.words &&
-          (Config.mode === "words" || Config.mode === "dictionary")
-        ) {
-          break;
-        }
-        wordCount++;
         TestWords.words.push(word, i);
         TestUI.addWord(word);
       }
+
+      if (Config.mode === "dictionary") {
+        dictionarySectionsGenerated++;
+      }
     }
   }
+
+  if (areAllTestWordsGenerated()) return;
+
+  // dictionary should only grow via sections (definitions), never random single words
+  if (Config.mode === "dictionary") return;
 
   try {
     const randomWord = await WordsGenerator.getNextWord(
@@ -1008,8 +1067,10 @@ export async function finish(difficultyFailed = false): Promise<void> {
     (Config.mode === "time" &&
       mode2Number === 0 &&
       completedEvent.testDuration < 15) ||
-    (Config.mode === "words" && mode2Number < 10 && mode2Number > 0) ||
-    (Config.mode === "words" &&
+    ((Config.mode === "words" || Config.mode === "dictionary") &&
+      mode2Number < 10 &&
+      mode2Number > 0) ||
+    ((Config.mode === "words" || Config.mode === "dictionary") &&
       mode2Number === 0 &&
       completedEvent.testDuration < 15) ||
     (Config.mode === "custom" &&
@@ -1417,24 +1478,29 @@ qs(".pageTest")?.onChild("click", "#testConfig .mode .textButton", (e) => {
   const mode = (e.childTarget as HTMLElement)?.getAttribute("mode") as Mode;
   if (mode === undefined) return;
   if (setConfig("mode", mode)) {
-    if (mode === "dictionary" && ![20, 40, 60, 100].includes(Config.words)) {
-      setConfig("words", 20);
+    if (mode === "dictionary" && ![10, 15].includes(Config.words)) {
+      setConfig("words", 10);
     }
     ManualRestart.set();
     restart();
   }
 });
 
-qs(".pageTest")?.onChild("click", "#testConfig .wordCount .textButton", (e) => {
-  if (TestState.testRestarting) return;
-  const wrd = (e.childTarget as HTMLElement)?.getAttribute("wordCount") ?? "15";
-  if (wrd !== "custom") {
-    if (setConfig("words", parseInt(wrd))) {
-      ManualRestart.set();
-      restart();
+qs(".pageTest")?.onChild(
+  "click",
+  "#testConfig .dictionaryWordCount .textButton",
+  (e) => {
+    if (TestState.testRestarting) return;
+    const wrd =
+      (e.childTarget as HTMLElement)?.getAttribute("wordCount") ?? "10";
+    if (wrd !== "custom") {
+      if (setConfig("words", parseInt(wrd))) {
+        ManualRestart.set();
+        restart();
+      }
     }
-  }
-});
+  },
+);
 
 qs(".pageTest")?.onChild("click", "#testConfig .time .textButton", (e) => {
   if (TestState.testRestarting) return;
@@ -1475,22 +1541,6 @@ qs(".pageTest")?.onChild(
           ManualRestart.set();
           restart();
         }
-      }
-    }
-  },
-);
-
-qs(".pageTest")?.onChild(
-  "click",
-  "#testConfig .dictionaryWordCount .textButton",
-  (e) => {
-    if (TestState.testRestarting) return;
-    const wrd =
-      (e.childTarget as HTMLElement)?.getAttribute("wordCount") ?? "20";
-    if (wrd !== "custom") {
-      if (setConfig("words", parseInt(wrd))) {
-        ManualRestart.set();
-        restart();
       }
     }
   },

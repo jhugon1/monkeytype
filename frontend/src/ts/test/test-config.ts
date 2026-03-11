@@ -274,7 +274,7 @@ function updateActiveExtraButtons(key: string, value: ConfigValue): void {
     )?.addClass("active");
   } else if (key === "dictionaryWords") {
     qsa("#testConfig .dictionaryWordCount .textButton")?.removeClass("active");
-    const dictionaryCustom = ![20, 40, 60, 100].includes(value as number)
+    const dictionaryCustom = ![10, 15].includes(value as number)
       ? "custom"
       : (value as number);
     qs(
